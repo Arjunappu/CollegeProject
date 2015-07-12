@@ -1,0 +1,19 @@
+﻿@using RestaurantBookingSystem.Helpers
+@using RestaurantBookingSystem.Infrastructure
+@if (Uri.Compare(Request.Url, new Uri(Url.AbsoluteAction("Login", "Account", null)), UriComponents.Path, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0){return;}
+<div class="user-loginstatus ui-corner-all ui-widget-content">
+    @if (Request.IsAuthenticated && User.Identity is RestaurantUserIdentity)
+    {
+        var identity = (RestaurantUserIdentity)User.Identity;
+        <span class="user-loginstatus-text">Hello, @identity.FriendlyName
+            @if (identity.GetAuthenticationType != FormsAuthenticationHelper.AuthenticationType.Guest)
+            { 
+                <text>|</text> @Html.ActionLink("[ Sign Out ]", "LogOut", "Account") 
+            }
+        </span>
+    }
+    else
+    {
+        <span class="user-loginstatus-text">@Html.ActionLink("[ Sign In ]", "LogIn", new { controller = "Account", returnurl = Request.RawUrl })</span>
+    }
+</div>

@@ -1,0 +1,80 @@
+@using System.Drawing
+@using RestaurantBookingSystem.Controllers
+@using RestaurantBookingSystem.Infrastructure.DataEntities
+@* ReSharper disable UnknownCssClass *@
+@model IEnumerable<RestaurantTable>
+@{
+    if (Model.Count() < 1){ return;}
+    var floorplanfile = Image.FromStream(new ImagesController().GetImage(Model.First().FloorPlanFileName).FileStream);
+    var floorplanheight = floorplanfile.Height;
+    var floorplanwidth = floorplanfile.Width;
+    
+}
+<script type="text/javascript">
+    TableStatusIMG = {
+        Booked: '@Url.Content("~/Content/themes/base/images/blue.png")',
+        Occupied: '@Url.Content("~/Content/themes/base/images/red.png")',
+        Vacant: '@Url.Content("~/Content/themes/base/images/green.png")',
+        BeingBooked : '@Url.Content("~/Content/themes/base/images/green_blue.png")'
+    };
+    window.bookingIsEnabled = false;
+    (function () {
+        $('#tabledetail').hide();
+        $(document).ready(function () {
+            $('.table-booking-status').hover(function (e) {
+                var widgetheight = parseInt($('#tabledetail').css('height')) + parseInt($('#tabledetail').css('border-top-width')) + parseInt($('#tabledetail').css('border-bottom-width')) + parseInt($('#tabledetail').css('padding-top')) + parseInt($('#tabledetail').css('padding-bottom'));
+                var widgetwidth = parseInt($('#tabledetail').css('width')) + parseInt($('#tabledetail').css('border-left-width')) + parseInt($('#tabledetail').css('border-right-width')) + parseInt($('#tabledetail').css('padding-left')) + parseInt($('#tabledetail').css('padding-right'));
+                if (window.innerHeight < e.screenY + widgetheight)
+                    dtop = dtop - (widgetheight - 20);
+                if (window.innerWidth < e.screenX + widgetwidth + 20)
+                    dleft = dleft - (widgetwidth + 40);
+                tabledetail.status = $('#table_status' + tabledetail.tableid).attr('data-status');
+                $('#tabledetail').stop(true, true);
+                $('#tabledetail_table_id').text(tabledetail.tableid);
+                $('#tabledetail_table_price').text(tabledetail.price);
+                $('#tabledetail_table_status').text(tabledetail.status);
+                $('#tabledetail_table_capacity').text(tabledetail.capacity);
+                $('#tabledetail').css({ 'top': dtop + 'px', 'left': dleft + 'px' }).fadeIn(500);
+            }).mouseout(function () {
+                $('#tabledetail').hide();
+            });
+        });
+    })();
+  
+    var dtop;
+    var dleft;
+    var tabledetail;
+    var showTableDetail = function (top, left, detail) {
+        dtop = top;
+        dleft = left;
+        tabledetail = detail;
+    };
+</script>
+<div id="tablestatuswidget" style="border:1px solid #777; max-width:830px; max-height:830px; height: @(floorplanheight)px; width: @(floorplanwidth)px; margin: 0px; position: relative; margin: auto; background: transparent url(@Url.Action("GetImage", "Images", new { id = Model.First().FloorPlanFileName})) center center no-repeat">
+    @*<img alt="floorplan" src="@Url.Action("GetImage", "Images", new { id = Model.First().FloorPlanFileName})" style="position: absolute; top: 0px; left: 0px; "/>*@
+    <div style="display: block; position: absolute; top: 0px; left: 0px;">
+        @foreach (var table in Model)
+        {
+            var file = string.Empty;
+            if (table.Status == RestaurantTable.RestaurentTableStatus.Booked) {
+                file = Url.Content("~/Content/themes/base/images/red.png");
+            }
+            if (table.Status == RestaurantTable.RestaurentTableStatus.Occupied) {
+                file = Url.Content("~/Content/themes/base/images/blue.png");
+            }
+            if (table.Status == RestaurantTable.RestaurentTableStatus.Vacant) {
+                file = Url.Content("~/Content/themes/base/images/green.png");
+            }
+            <img id="@("table_status" + table.TableId)" class="table-booking-status" data-status="@table.Status" src="@file" alt="@table.Status" style="position: absolute; top: @(table.Position.Y)px; left: @(table.Position.X)px;" onclick="if (bookingIsEnabled) bookThisTable.call(this,@table.TableId);" onmouseover="showTableDetail(@(table.Position.Y),@(table.Position.X+30), {tableid : @(table.TableId), price : @(table.Price), status: '@(table.Status)', capacity : @((int)table.TableType)})"/>
+        
+        }
+        <div id="tabledetail" class="ui-helper-hidden ui-corner-all" style="position:absolute;z-index:100; height: 70px;width:150px; background-color: #333; color:#eee; border:2px solid #fff; padding:20px">
+            <div><label style="display: inline-block; min-width: 70px">Table Id</label> : <span id="tabledetail_table_id">Test details</span></div>
+            <div><label style="display: inline-block; min-width: 70px">Price</label> : Rs.<span id="tabledetail_table_price">Test details</span>/-</div>
+            <div><label style="display: inline-block; min-width: 70px">Status</label> : <span id="tabledetail_table_status">Test details</span></div>
+            <div><label style="display: inline-block; min-width: 70px">Capicity</label> : <span id="tabledetail_table_capacity">Test details</span></div>
+            <p></p>
+        </div>  
+    </div>
+</div>
+@* ReSharper restore UnknownCssClass *@

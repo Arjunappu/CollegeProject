@@ -1,0 +1,22 @@
+﻿@using RestaurantBookingSystem.Infrastructure.DataEntities
+@model IEnumerable<SeasonalOffer>
+<div class="slider-wrapper theme-default">
+    <div class="ribbon">
+    </div>
+    <div id="slider" class="nivoSlider">
+    @foreach (var advertisement in Model)
+    {
+        <a href="@Url.Action("New", "Bookings", new {advertisement.OfferId})"><img style="max-height: 386px; max-width: 900px;" src="@Url.Action("GetImage", "Images", new {id = advertisement.PictureFileName})" alt="@advertisement.Title" title="@advertisement.Description" /></a>
+    }
+    </div>
+    <div id="htmlcaption" class="nivo-html-caption">
+        <strong>This</strong> is an example of a <em>HTML</em> caption with <a href="#">a link</a>.
+    </div>
+</div>
+<script type="text/javascript">
+    $(window).load(function () {
+        $('#slider').nivoSlider({
+			randomStart: false
+		});
+    });
+</script>

@@ -1,0 +1,121 @@
+﻿@using RestaurantBookingSystem.Infrastructure
+@using RestaurantBookingSystem.Infrastructure.DataEntities
+@model PaginatedList<RestaurantUser>
+@{
+    ViewBag.Title = "Index";
+}
+@section head{
+    <script src="@Url.Content("~/Scripts/RestaurantBookingSystemScripts/RestaurantBookingSystemClientCore.js")"
+        type="text/javascript"></script>
+}
+<h2>
+    Employees List:</h2>
+<hr />
+<div>
+    <table summary="Employees List">
+        <thead>
+            <tr>
+                <th scope="col">
+                    Id
+                </th>
+                <th scope="col">
+                    Role
+                </th>
+                <th scope="col">
+                    Name
+                </th>
+                <th scope="col">
+                    Mobile Number
+                </th>
+                <th scope="col">
+                    Email Id
+                </th>
+                <th scope="col">
+                    Creation Date
+                </th>
+                <th scope="col">
+                    Last Login
+                </th>
+                <th scope="col">
+                    Actions
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr class="@("item_row" + item.UserGuid.ToString("n"))">
+                    <td>@item.UserId
+                    </td>
+                    <td>@item.UserRole
+                    </td>
+                    <td>@item.Name
+                    </td>
+                    <td>@item.MobileNumber
+                    </td>
+                    <td>@item.EmailId
+                    </td>
+                    <td>@item.CreationDate
+                    </td>
+                    <td>@item.LastLoginDate
+                    </td>
+                    <td class="table-td-action">
+                        <a class="edit_row"
+                             href="@Url.Action("Edit", new { id = item.UserId })">Edit</a> <a 
+                             class="delete_row"  href="#" onclick="deleteRow('@Url.Action("Delete")', '@item.UserGuid.ToString("n")', '@item.UserRole', '@item.Name')">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="pagination-box">
+        <strong>Showing Page @(Model.PageNumber)
+            of @(Model.TotalPages > 0 ? Model.TotalPages : 1):</strong>
+        <span class="pagination-box-button-set">
+        @if (Model.HasPreviousPage)
+        {
+            @Html.ActionLink("Previous", "Index", new { page = Model.PageNumber - 1 }, new { @class = "paginated-list-prev" })
+        }
+        @if (Model.HasNextPage)
+        {
+            @Html.ActionLink("Next", "Index", new { page = Model.PageNumber + 1 }, new { @class = "paginated-list-next" })
+        }
+        </span>
+    </div>
+</div>
+<div id="dialog-confirm" class="ui-helper-hidden" title="Delete Employee?">
+    <p>
+        <span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>
+        <span id="dialog-confirm-item-type"></span> <span id="dialog-confirm-item-name">
+        </span> will be permanently deleted.</p>
+    <p style="margin: 0 0px 0px 22px;">
+        Are you sure?</p>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('.edit_row').button({
+            icons: {
+                primary: "ui-icon-pencil"
+            },
+            text: false
+        });
+        $('.delete_row').button({
+            icons: {
+                primary: "ui-icon-closethick"
+            },
+            text: false
+        });
+        $('.paginated-list-prev').button({
+            label: 'Previous',
+            icons: {
+                primary: "ui-icon-seek-prev"
+            }
+        });
+        $('.paginated-list-next').button({
+            icons: {
+                secondary: "ui-icon-seek-next"
+            },
+            label: 'Next'
+        });
+    });
+</script>

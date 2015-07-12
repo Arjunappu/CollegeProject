@@ -1,0 +1,48 @@
+﻿@using RestaurantBookingSystem.Infrastructure.DataEntities
+@using RestaurantBookingSystem.Helpers
+@model RestaurantUser
+
+@{
+    ViewBag.Title = "Index";
+}
+<h2>Account Details</h2>
+<div class="h-seperator"></div>
+<div class="ui-widget ui-widget-content ui-corner-all" style="border: 1px solid black;padding:10px;">
+    @if (Model.FacebookDetail != null)
+    {
+        <div class="account-detail-header ui-corner-top ui-widget-header">Facebook Details:</div>
+        <div class="account-detail-block ui-corner-bottom">
+            <p class="p-details-row"><img alt="" src="@FacebookHelper.GetFacebookBigPictureUrl(Model.FacebookDetail.FacebookId, Model.FacebookDetail.OAuthToken)" class="ui-corner-all" style="max-width: 600px;max-height:400px; background: #333; border:1px solid black;"/></p>
+            <p class="p-details-row"><label class="p-detail-label">Facebook Name</label>: <span>@Model.Name</span></p>
+            <p class="p-details-row"><label class="p-detail-label">Facebook Profile</label>: <span><a href="@Model.FacebookDetail.ProfileLink">@Model.FacebookDetail.ProfileLink</a></span></p>
+        </div>
+    }
+    <div class="account-detail-header ui-corner-top ui-widget-header">Profile Details:</div>
+    <div class="account-detail-block ui-corner-bottom">
+        <p class="p-details-row"><label class="p-detail-label">Name</label>: <span>@Model.Name</span></p>
+        <p class="p-details-row"><label class="p-detail-label">EmailId</label>: <span>@Model.EmailId</span></p>
+        <p class="p-details-row"><label class="p-detail-label">Address</label>: <span>@(Model.Address.IsNullOrEmpty() ? "Not Available" : Model.Address.Trim())</span></p>
+        <p class="p-details-row"><label class="p-detail-label">Mobile Number</label>: <span>@(Model.MobileNumber.ToString().TrimStart('0').IsNullOrEmpty() ? "Not Available" : Model.MobileNumber.ToString().TrimStart('0'))</span></p>
+    </div>
+    <div class="account-detail-header ui-corner-top  ui-widget-header">Account Details:</div>
+    <div class="account-detail-block ui-corner-bottom">
+        <p class="p-details-row"><label class="p-detail-label">Account type</label>: <span>@Model.UserRole</span></p>
+        <p class="p-details-row"><label class="p-detail-label">Created on</label>: <span>@Model.CreationDate.TryMakingLocalToClient()</span></p>
+        <p class="p-details-row"><label class="p-detail-label">Last visited on</label>: <span>@Model.LastLoginDate.TryMakingLocalToClient()</span></p>
+        <p class="p-details-row"><label class="p-detail-label">Last password change on</label>: <span>@Model.LastPasswordChangedDate.TryMakingLocalToClient()</span></p>
+        <p class="p-details-row"><label class="p-detail-label">Secret question</label>: <span>@(Model.PasswordQuestion.IsNullOrEmpty() ? "Not Available" : Model.PasswordQuestion)</span></p>
+        <p class="p-details-row"><label class="p-detail-label">Name</label>: <span>@Model.Name</span></p>
+    </div>
+    <div class="account-detail-block ui-corner-all" style="border-top: 1px solid #777">
+        <div class="ui-helper-clearfix" style="width:350px; margin: 5px auto;">
+            <a id="account_logout" href="@Url.Action("LogOut")" style="float: left; padding:5px; margin:5px; width:150px">Log Out</a>
+            <a id="account_changepassword" href="@Url.Action("ChangePassword")" style="float: right; padding:5px; margin:5px; width:150px">Change password</a>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#account_logout').button({ icons: { primary: "ui-icon-power"} });
+        $('#account_changepassword').button({ icons: { secondary: "ui-icon-pencil"} });
+    });
+</script>

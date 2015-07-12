@@ -1,0 +1,24 @@
+﻿@using RestaurantBookingSystem.Helpers
+@model DateTime
+@Html.TextBoxFor(m => m, new { style = "min-width: 17em;"})
+<script type="text/javascript">
+    $(function () {
+        $("#@(ViewData.TemplateInfo.GetFullHtmlFieldId(""))").datepicker({
+                @{
+                    if (ViewData.ModelMetadata.AdditionalValues.ContainsKey("JuiMinDate"))
+                    {
+                        <text> minDate : "@(ViewData.ModelMetadata.AdditionalValues["JuiMinDate"])",</text>
+                    }
+                    if (ViewData.ModelMetadata.AdditionalValues.ContainsKey("JuiMaxDate"))
+                    {
+                        <text> maxDate : "@(ViewData.ModelMetadata.AdditionalValues["JuiMaxDate"])",</text>
+                    }
+                    <text>
+                        dateFormat :"DD, d MM, yy",
+                        changeMonth :true
+                    </text>
+                }
+            });
+        $("#@(ViewData.TemplateInfo.GetFullHtmlFieldId(""))").val("@(Model.TryMakingLocalToClient().ToString("dddd, d MMMM, yyyy"))");
+    });
+</script>

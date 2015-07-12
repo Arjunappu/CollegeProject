@@ -1,0 +1,149 @@
+﻿@using RestaurantBookingSystem.Infrastructure
+@using RestaurantBookingSystem.Infrastructure.DataEntities
+@using RestaurantBookingSystem.Models
+@model PaginatedList<OfferBase>
+
+@{
+    ViewBag.Title = "Offers List";
+ }
+ @section head{
+        <script src="@Url.Content("~/Scripts/RestaurantBookingSystemScripts/RestaurantBookingSystemClientCore.js")"
+        type="text/javascript"></script>
+ }
+<h2>Offers</h2>
+<div class="h-seperator"></div>
+<div>
+    <table summary="Restaurant OFfers">
+        <thead>
+            <tr>
+                <th scope="col">
+                    Offer Id
+                </th>
+                <th scope="col">
+                    Title
+                </th>
+                <th scope="col">
+                    Type
+                </th>
+                <th scope="col">
+                    Value
+                </th>
+                <th scope="col">
+                    Valid From
+                </th>
+                <th scope="col">
+                    Valid Till
+                </th>
+                <th scope="col">
+                    Description
+                </th>
+                <th scope="col">
+                    Offer Detail
+                </th>
+                <th scope="col">
+                    Action
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr class="@("item_row" + item.OfferId.ToString())">
+                    <td>@item.OfferId
+                    </td>
+                    <td>@item.Title
+                    </td>
+                    <td>@item.Type
+                    </td>
+                    <td>@item.Value
+                    </td>
+                    <td>@item.ValidFrom.ToLongDateString()
+                    </td>
+                    <td>@item.ValidTill.ToLongDateString()
+                    </td>
+                    <td>@item.Description
+                    </td>
+                    <td>
+                        @if(item is Coupon)
+                        {
+                            <text>Coupon Code: @((item as Coupon).Code)</text>
+                        }
+                        else
+                        {
+                            <button id="@("offerdetail" + item.GetHashCode())" onclick="toggleoffer('@("seasonaloffer" + item.GetHashCode())', '@("offerdetail" + item.GetHashCode())')">Show Offer Image</button>
+                        }
+                    </td>
+                    <td class="table-td-action">
+                        <a class="edit_row"
+                             href="@Url.Action("Edit", new { id = item.OfferId })">Edit</a> <a 
+                             class="delete_row" onclick="deleteRow('@Url.Action("Delete")', '@item.OfferId', '@item.GetType().Name', '@item.Title')">Delete</a>
+                    </td>
+                </tr>
+                if (!(item is SeasonalOffer)){continue;}
+                <tr class="@("item_row" + item.OfferId.ToString())">
+                    <td colspan="9" style="padding: 0px; margin: 0px;">
+                        <div  id="@("seasonaloffer" + item.GetHashCode())" class="ui-helper-hidden ui-corner-all" style="margin:6px 8px; width:auto; height:300px;background: #fff url(@Url.Action("GetImage","Images", new { id = (item as SeasonalOffer).PictureFileName})) 50% 50% no-repeat"/>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="pagination-box">
+        <strong>Showing Page @(Model.PageNumber)
+            of @(Model.TotalPages > 0 ? Model.TotalPages : 1):</strong>
+        <span class="pagination-box-button-set">
+        @if (Model.HasPreviousPage)
+        {
+            @Html.ActionLink("Previous", "Index", new { page = Model.PageNumber - 1 }, new { @class = "paginated-list-prev" })
+        }
+        @if (Model.HasNextPage)
+        {
+            @Html.ActionLink("Next", "Index", new { page = Model.PageNumber + 1 }, new { @class = "paginated-list-next" })
+        }
+        </span>
+    </div>
+</div>
+<div id="dialog-confirm" class="ui-helper-hidden" title="Delete Offer?">
+    <p>
+        <span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>
+        <span id="dialog-confirm-item-type"></span> for "<span id="dialog-confirm-item-name">
+        </span>" will be permanently deleted.</p>
+    <p style="margin: 0 0px 0px 22px;">
+        Are you sure?</p>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('.edit_row').button({
+            icons: {
+                primary: "ui-icon-pencil"
+            },
+            text: false
+        });
+        $('.delete_row').button({
+            icons: {
+                primary: "ui-icon-closethick"
+            },
+            text: false
+        });
+        $('.paginated-list-prev').button({
+            label: 'Previous',
+            icons: {
+                primary: "ui-icon-seek-prev"
+            }
+        });
+        $('.paginated-list-next').button({
+            icons: {
+                secondary: "ui-icon-seek-next"
+            },
+            label: 'Next'
+        });
+    });
+    
+    function toggleoffer(offerelement, showhidebutton) {
+        $('#' + offerelement).slideToggle(500);
+        if ($('#' + showhidebutton).html() === "Show Offer Image")
+            $('#' + showhidebutton).html("Hide Offer Image");
+        else
+            $('#' + showhidebutton).html("Show Offer Image");
+    }
+</script>

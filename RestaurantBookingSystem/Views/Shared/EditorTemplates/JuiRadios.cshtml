@@ -1,0 +1,28 @@
+﻿@model Enum
+@{
+    var enumvalues = Enum.GetValues(Model.GetType())
+        .Cast<Enum>()
+        .Select(m =>
+                    {
+                        var enumVal = Enum.GetName(Model.GetType(), m);
+                        return new SelectListItem
+                                   {
+                                       Selected = (Model.ToString() == enumVal),
+                                       Text = enumVal,
+                                       Value = enumVal
+                                   };
+                    });
+    var eid = ViewData.TemplateInfo.GetFullHtmlFieldName("") + Guid.NewGuid().ToString("n");
+}
+<div id="@eid">
+    @foreach(var enumvalue in enumvalues)
+    {
+        <input type="radio" id="@string.Format("radio{0}{1}", ViewData.TemplateInfo.GetFullHtmlFieldName("").Trim('-', '.', '_'), enumvalue.Value.Trim('-', '.', '_'))" @(enumvalue.Selected ? "checked=\"checked\"" : "") value="@(enumvalue.Value)" name="@(ViewData.TemplateInfo.GetFullHtmlFieldName(""))"/>
+        <label for="@string.Format("radio{0}{1}", ViewData.TemplateInfo.GetFullHtmlFieldName("").Trim('-', '.', '_'), enumvalue.Value.Trim('-', '.', '_'))">@enumvalue.Text</label>
+    }
+</div>
+<script type="text/javascript" language="javascript">
+    $(function () {
+        $('#@eid').buttonset();
+    });
+</script>

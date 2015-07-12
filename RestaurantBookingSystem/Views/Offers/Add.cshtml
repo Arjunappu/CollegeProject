@@ -1,0 +1,146 @@
+﻿@using RestaurantBookingSystem.Infrastructure.Repositories
+@model RestaurantBookingSystem.Models.AddOfferModel
+@{
+    ViewBag.Title = "New Offer";
+}
+<h2>
+    New Offer</h2>
+@section head
+{
+    <script src="@Url.Content("~/Scripts/jquery.validate.min.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/jquery.validate.unobtrusive.min.js")" type="text/javascript"></script>
+}
+<div class="h-seperator">
+</div>
+@using (Html.BeginForm("Add", "Offers", FormMethod.Post, new { enctype = "multipart/form-data" }))
+{
+    @Html.ValidationSummary(true)
+    <fieldset>
+        <legend>Details for New Offer</legend>
+        <div class="editor-label">
+            @Html.LabelFor(model => model.Title)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.Title)
+            @Html.ValidationMessageFor(model => model.Title)
+        </div>
+        <div class="editor-label">
+            @Html.LabelFor(model => model.Type)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.Type)
+            @Html.ValidationMessageFor(model => model.Type)
+        </div>
+        <div class="editor-label">
+            @Html.LabelFor(model => model.Value)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.Value)
+            @Html.ValidationMessageFor(model => model.Value)
+            @Html.DropDownList("MenuItems", new RestaurantMenuItemRepository()
+                .SelectAll()
+                .Select(menuitem =>
+                    new SelectListItem { Selected = false, Text = menuitem.Name, Value = menuitem.ItemId.ToString() })
+             , new { @class = "ui-helper-hidden" })
+            <input type="hidden" id="OfferValueHidden" />
+        </div>
+        <div class="editor-label">
+            @Html.LabelFor(model => model.ValidFrom)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.ValidFrom)
+            @Html.ValidationMessageFor(model => model.ValidFrom)
+        </div>
+        <div class="editor-label">
+            @Html.LabelFor(model => model.ValidTill)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.ValidTill)
+            @Html.ValidationMessageFor(model => model.ValidTill)
+        </div>
+        <div class="editor-label">
+            @Html.LabelFor(model => model.PublishedBy)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.PublishedBy)
+            @Html.ValidationMessageFor(model => model.PublishedBy)
+        </div>
+        <div id="offerpublishimage" class="ui-helper-hidden">
+            <div class="editor-label">
+                <label for="OfferImage">
+                    Image for Advertisement</label>
+            </div>
+            <div class="editor-field">
+                <input type="file" id="OfferImage" name="OfferImage" />
+            </div>
+            <input type="hidden" id="OfferImageHidden" />
+        </div>
+        <div id="offerpublishcode" class="ui-helper-hidden">
+            <div class="editor-label">
+                @Html.LabelFor(model => model.CouponCode)
+            </div>
+            <div class="editor-field">
+                @Html.EditorFor(model => model.CouponCode)
+                @Html.ValidationMessageFor(model => model.CouponCode)
+            </div>
+            <input type="hidden" id="CouponCodeHidden" />
+        </div>
+        <div class="editor-label">
+            @Html.LabelFor(model => model.Description)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.Description)
+            @Html.ValidationMessageFor(model => model.Description)
+        </div>
+        <p>
+            <input type="submit" value="Create" />
+        </p>
+    </fieldset>
+}
+<div>
+    @Html.ActionLink("Back to List", "Index")
+</div>
+<script type="text/javascript" language="javascript">
+    //A quick fix for default value of 0 in Offer Value Field
+    $('input[type="text"][name="Value"]').val("");
+
+    $('input[type="radio"][name="PublishedBy"]').change(function () {
+        if ($(this).val() === 'Code') {
+            $('#offerpublishimage').hide();
+            $('#offerpublishcode').show();
+            if ($('#CouponCodeHidden').val() != '') { $('#CouponCode').val($('#CouponCodeHidden').val()); }
+            $('#OfferImage').val('');
+        }
+        if ($(this).val() === 'Advertisement') {
+            $('#offerpublishcode').hide();
+            $('#offerpublishimage').show();
+            $('#CouponCodeHidden').val($('#CouponCode').val());
+            $('#CouponCode').val('');
+        }
+    });
+
+    var valueIsDirty = false;
+    $('input[type="radio"][name="Type"]').change(function () {
+        if ($(this).val() === 'FreeServing') {
+            $('#Value').disableSelection().css('background-color', '#ddd');
+            $('#OfferValueHidden').val($('#Value').val());
+            $('#Value').val('');
+            $('#MenuItems').show();
+            valueIsDirty = true;
+        }
+        else {
+            if (valueIsDirty) {
+                $('#Value').val($('#OfferValueHidden').val());
+                $('#MenuItems').hide();
+                $('#Value').enableSelection().css('background-color', '#fff');
+            }
+        }
+    });
+    $('select[name="MenuItems"]').change(function () {
+        if ($(this).hasClass('.ui-helper-hidden'))
+            return;
+        else {
+            $('#Value').val($(this).val());
+        }
+    });
+</script>

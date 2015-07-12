@@ -1,0 +1,349 @@
+﻿@using RestaurantBookingSystem.Helpers
+@using RestaurantBookingSystem.Infrastructure
+@using RestaurantBookingSystem.Infrastructure.DataEntities
+@* ReSharper disable UnknownCssClass *@
+@model PaginatedList<RestaurantBooking>
+@{
+    ViewBag.Title = "Booking History";
+}
+<h2 style="text-align: center">Booking History</h2>
+<div class="h-seperator"></div>
+<div>
+    <table summary="Booking History">
+        <thead>
+            <tr>
+                <th scope="col">
+                    Id
+                </th>
+                <th scope="col">
+                    Booked On
+                </th>
+                <th scope="col">
+                    Booked For
+                </th>
+                <th scope="col">
+                    Duration
+                </th>
+                <th style="min-width:80px;text-align:right;" scope="col">
+                    Tables
+                </th>
+                <th style="min-width:120px;text-align:right;" scope="col">
+                    Amount Paid
+                </th>
+                <th scope="col">
+                    Status
+                </th>
+                <th scope="col">
+                    Action
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var booking in Model)
+            {
+                <tr class="@("item_row" + booking.BookingId)">
+                    <td>@booking.BookingId
+                    </td>
+                    <td>@booking.BookedOn.TryMakingLocalToClient().ToString("dddd, dd MMM yyyy, h:mm tt")
+                    </td>
+                    <td>@booking.BookedFor.TryMakingLocalToClient().ToString("dddd, dd MMM yyyy, h:mm tt")
+                    </td>
+                    <td>@((booking.BookedTill.ToUniversalTime() - booking.BookedFor.ToUniversalTime()).TotalMinutes) Mins
+                    </td>
+                    <td style="min-width:80px;text-align:right;">@booking.BookedTables.Count
+                    </td>@{var billamount = 0M;}
+                    <td style="min-width:120px;text-align:right;"><span>Rs. @(((double)(booking.Bills.Aggregate(billamount, (amt, bill) => amt + bill.NetAmount))).ToString("#0.00")) /-</span>
+                    </td>@{
+                             var color = "";
+                             if (booking.Status == RestaurantBooking.BookingStatus.Confirmed)
+                             {
+                                 color = "color:green";
+                             }
+                             if (booking.Status == RestaurantBooking.BookingStatus.Cancelled)
+                             {
+                                 color = "color:red";
+                             }
+                         }
+                    <td style="@color">@booking.Status
+                    </td>
+                    <td class="table-td-action">
+                        <button id="@("button_offer_detail" + booking.GetHashCode())" class="detail_show_hide_button" onclick="toggleDetail('@("div_booking_detail" + booking.GetHashCode())', '@("button_offer_detail" + booking.GetHashCode())')">Show Details</button>
+                    </td>
+                </tr>
+                <tr class="@("item_row" + booking.BookingId)">
+                    <td colspan="8" style="padding: 0px; margin: 0px;">
+                        <div  id="@("div_booking_detail" + booking.GetHashCode())" class="ui-helper-hidden ui-corner-all ui-widget ui-widget-content">
+                        @if (User.IsInRole("Employee") && booking.BookingCustomer is RestaurantUser)
+                        {
+                            <div class="account-detail-header ui-corner-top ui-widget-header">Customer Details</div>
+                            <div class="account-detail-block ui-corner-bottom">
+                                <p class="p-details-row"><label class="p-detail-label">User Id</label>: <span>@((booking.BookingCustomer as RestaurantUser).UserId)</span></p>
+                                <p class="p-details-row"><label class="p-detail-label">Name</label>: <span>@((booking.BookingCustomer as RestaurantUser).Name)</span></p>
+                                <p class="p-details-row"><label class="p-detail-label">Email</label>: <span>@((booking.BookingCustomer as RestaurantUser).EmailId)</span></p>
+                                <p class="p-details-row"><label class="p-detail-label">Address</label>: <span>@((booking.BookingCustomer as RestaurantUser).Address)</span></p>
+                                <p class="p-details-row"><label class="p-detail-label">Mobile</label>: <span>@((booking.BookingCustomer as RestaurantUser).MobileNumber.ToString("#"))</span></p>
+                                <p class="p-details-row"><label class="p-detail-label">Customer Type</label>: <span>@((booking.BookingCustomer as RestaurantUser).UserRole)</span></p>
+                            </div>
+                        }
+                            <div class="account-detail-header ui-corner-top ui-widget-header">Booking Details</div>
+                            <div class="account-detail-block ui-corner-bottom">                            
+                        @{
+                            var finalbill = booking.Bills.Aggregate((billp, billn) =>
+                                                                        {
+                                                                            billp.DiscountAmount += billn.DiscountAmount;
+                                                                            billp.GrossAmount += billn.GrossAmount;
+                                                                            billp.NetAmount += billn.NetAmount;
+                                                                            return billp;
+                                                                        });
+                        }
+                        @if (booking.Status == RestaurantBooking.BookingStatus.Confirmed || booking.Status == RestaurantBooking.BookingStatus.InProcess)
+                        {
+                            <div>
+                                <table class="ui-corner-all nongeneric-table" summary="Booking Detail">
+                                    <thead>
+                                        <tr>
+                                            <th id="BookedItems" scope="col">
+                                                Booked Item
+                                            </th>
+                                            <th id="BookedDescription" scope="col">
+                                                Booking Description
+                                            </th>
+                                            <th id="BookedAmount" class="amount" scope="col">
+                                                Amount (Rs.)
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                Tables (@booking.BookedTables.Count):
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <span class="span-table-detail">Table Capacity</span>
+                                                    <span class="span-table-detail text-right">Table Price</span>
+                                                    <span class="span-table-detail text-right">Booked Duration</span>
+                                                </div>
+                                                @foreach (var table in booking.BookedTables)
+                                                {
+                                                    <div class="sub-item-description">
+                                                        <span class="span-table-detail">@((int) table.TableType)</span>
+                                                        <span class="span-table-detail text-right">@table.Price.ToString("#0 . 00 /-")</span>
+                                                        <span class="span-table-detail text-right">@((booking.BookedTill.ToUniversalTime() - booking.BookedFor.ToUniversalTime()).TotalMinutes) Minutes</span>
+                                                    </div>
+                                                }
+                                            </td>
+                                            <td class="amount">
+                                                <div class="price-title">
+                                                    <span>Booking Cost</span>
+                                                </div>
+                                                @foreach (var table in booking.BookedTables)
+                                                {
+                                                    <div class="sub-item-description ui-helper-clearfix">
+                                                        <span style="float: left">Rs. </span><span>@((table.Price*((booking.BookedTill.ToUniversalTime() - booking.BookedFor.ToUniversalTime()).TotalMinutes/AppConfigHelper.BookingSlotMinutes)).ToString("#0 . 00 /-"))</span>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                        @if (booking.PrefferedMenuItems.Count > 0)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    Menu Items (@booking.PrefferedMenuItems.Count):
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <span>Item Name</span>
+                                                    </div>
+                                                    @foreach (var item in booking.PrefferedMenuItems)
+                                                    {
+                                                        <div class="sub-item-description">
+                                                            <span>@item.Name</span>
+                                                        </div>
+                                                    }
+                                                </td>
+                                                <td class="amount">
+                                                    <div class="price-title">
+                                                        <span>Price</span>
+                                                    </div>
+                                                    @foreach (var item in booking.PrefferedMenuItems)
+                                                    {
+                                                        <div class="sub-item-description ui-helper-clearfix">
+                                                            <span style="float: left;">Rs. </span><span>@item.Price.ToString("#0 . 00 /-")</span>
+                                                        </div>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                        <tr>
+                                            <td></td>
+                                            <td></td>
+                                            <td class="amount">
+                                                <div class="price-title">
+                                                    <span>Gross Total</span>
+                                                </div>
+                                                <div class="sub-item-description ui-helper-clearfix">
+                                                    <span style="float: left;">Rs. </span><span>@finalbill.GrossAmount.ToString("#0 . 00 /-")</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                            </td>
+                                            <td>
+                                            </td>
+                                            <td class="amount">
+                                                <div class="price-title">
+                                                    <span>Discount Amount</span>
+                                                </div>
+                                                <div class="sub-item-description ui-helper-clearfix">
+                                                    <span style="float: left;">Rs. </span><span>@finalbill.DiscountAmount.ToString("(- #0 . 00 ) /-")</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td></td>
+                                            <td>
+                                                <div>
+                                                    <span>Final Bill</span>
+                                                </div>
+                                                <div class="sub-item-description"><span class="final-price">Net Amount Paid</span></div>
+                                            </td>
+                                            <td class="amount">
+                                                <div class="price-title">
+                                                    <span>Net Total</span>
+                                                </div>
+                                                <div class="sub-item-description ui-helper-clearfix">
+                                                    <span  class="final-price" style="float: left;">Rs. </span><span class="final-price" id="span_net_total">@finalbill.NetAmount.ToString("#0 . 00 /-")</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        @if (booking.Status == RestaurantBooking.BookingStatus.Cancelled)
+                        {
+                                <div class="price-title">
+                                    <span>Net Total Amount Refunded</span>
+                                </div>
+                                <div class="sub-item-description ui-helper-clearfix">
+                                    <span  class="final-price" style="float: left;">Rs. </span><span class="final-price" id="span_net_total">@finalbill.NetAmount.ToString("#0 . 00 /-")</span>
+                                </div>
+                        }
+                            </div>
+                        @if (booking.Status == RestaurantBooking.BookingStatus.Confirmed || booking.Status == RestaurantBooking.BookingStatus.InProcess)
+                        {
+                            <div class="account-detail-block ui-corner-all" style="border-top: 1px solid #777">
+                                <div style="width:150px; margin: 5px auto;">
+                                    <a class="booking_cancel" onclick="cancelBooking('@Url.Action("Cancel")', @booking.BookingId, '@(booking.BookedFor.TryMakingLocalToClient().ToString("dddd, dd MMM, h:mm tt"))')">Cancel Booking</a>
+                                </div>
+                            </div>
+                        }
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="pagination-box">
+        <strong>Showing Page @(Model.PageNumber)
+            of @(Model.TotalPages > 0 ? Model.TotalPages : 1):</strong> <span class="pagination-box-button-set">
+                @if (Model.HasPreviousPage)
+                {
+                    @Html.ActionLink("Previous", "Index", new { page = Model.PageNumber - 1 }, new { @class = "paginated-list-prev" })
+                }
+                @if (Model.HasNextPage)
+                {
+                    @Html.ActionLink("Next", "Index", new { page = Model.PageNumber + 1 }, new { @class = "paginated-list-next" })
+                }
+            </span>
+    </div>
+</div>
+<div id="dialog-confirm" class="ui-helper-hidden" title="Delete Menu Item?">
+    <p>
+        <span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>
+        Booking id: <span id="dialog-confirm-item-id"></span> for "<span id="dialog-confirm-item-date">
+        </span>" will be cancelled.</p>
+    <p style="margin: 0 0px 0px 22px;">
+        Are you sure?</p>
+</div>
+@section head
+{
+    <style type="text/css">
+        table.nongeneric-table{font-family:"Lucida Sans Unicode", "Lucida Grande", Sans-Serif;font-size:12px;background:#fff;width:700px;margin:25px auto;border-collapse:collapse;text-align:left;}
+        table.nongeneric-table th{font-size:14px;font-weight:400;color:#039;border-bottom:2px solid #6678b1;padding:10px 8px;}
+        table.nongeneric-table td{border-bottom:1px solid #ccc;color:#009;padding:6px 8px;vertical-align:top}
+        table.nongeneric-table td.amount, table th.amount{text-align:right;}
+        table.nongeneric-table td.amount div.price-title{text-align:left;}
+        table.nongeneric-table td div.sub-item-description{border-top:1px solid #ccc;color:#009;padding:6px 8px;}
+        span.span-table-detail{min-width:120px;display: inline-block}
+        .text-right{text-align:right}
+        .final-price{font-weight:500; font-size: 1.5em;color:green;}
+    </style>
+    <script src="@Url.Content("~/Scripts/RestaurantBookingSystemScripts/RestaurantBookingSystemClientCore.js")"
+        type="text/javascript"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.detail_show_hide_button').button();
+            $('.booking_cancel').button({
+                icons: {
+                    primary: "ui-icon-cancel"
+                }
+            });
+            $('.paginated-list-prev').button({
+                label: 'Previous',
+                icons: {
+                    primary: "ui-icon-seek-prev"
+                }
+            });
+            $('.paginated-list-next').button({
+                icons: {
+                    secondary: "ui-icon-seek-next"
+                },
+                label: 'Next'
+            });
+        });
+
+        function toggleDetail(detailelement, showhidebutton) {
+            $('#' + detailelement).slideToggle(500);
+            if ($('#' + showhidebutton + ' .ui-button-text').text() === "Show Details")
+                $('#' + showhidebutton + ' .ui-button-text').text("Hide Details");
+            else
+                $('#' + showhidebutton + ' .ui-button-text').text("Show Details");
+        }
+
+        function cancelBooking(cancelUrl, itemId, itemDate) {
+            $("#dialog-confirm-item-id").text(itemId);
+            $("#dialog-confirm-item-date").text(itemDate);
+            $(function () {
+                $("#dialog-confirm").dialog({
+                    resizable: false,
+                    height: 'auto',
+                    width: 'auto',
+                    modal: true,
+                    buttons: {
+                        Continue: function () {
+                            $.post(cancelUrl, { 'id': itemId }, function (responsejson, status) {
+                                if (status == 'success') {
+                                    if (responsejson.Result)
+                                        $('tr.item_row' + itemId).remove();
+                                    showViewNotification(responsejson.Result, responsejson.Message);
+                                }
+                                else {
+                                    showViewNotification(false, 'There was some network related error, please try again');
+                                }
+
+                            }, 'json');
+                            $(this).dialog("close");
+                        },
+                        Back: function () {
+                            $(this).dialog("close");
+                        }
+                    }
+                });
+            });
+        };
+    </script>
+}
+@* ReSharper restore UnknownCssClass *@

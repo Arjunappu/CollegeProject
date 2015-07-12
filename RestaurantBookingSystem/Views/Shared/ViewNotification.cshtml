@@ -1,0 +1,22 @@
+﻿@using RestaurantBookingSystem.Helpers
+@using RestaurantBookingSystem.Infrastructure
+@model ActionResultNotification
+@{
+    var state = Model.State == ActionResultNotification.MessageState.None ? "" : Model.State.ToString();
+    var message = Model.State == ActionResultNotification.MessageState.None ? "" : Model.Message;
+}
+<div id="view_notification" style="display: none; position: fixed; width: 100%; z-index: 9999">
+    <div class="ui-widget">
+        <div id="view_notification_ui_state" class="@(Model.Result ? "ui-state-highlight" : "ui-state-error")" style="padding: 0 .7em;">
+            <p>
+                <span id="view_notification_icon" class="ui-icon @(Model.Result ? "ui-icon-info" : "ui-icon-alert")" style="float: left; margin-right: .3em;">
+                </span><strong id="view_notification_state">@state: </strong><span id="view_notification_message">@message.</span></p>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+@if (Model.State != ActionResultNotification.MessageState.None)
+{
+    <text> $('#view_notification').slideDown(500).delay(3000).slideUp(1000); </text>
+}
+</script>

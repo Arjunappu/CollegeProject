@@ -1,0 +1,171 @@
+﻿@using RestaurantBookingSystem.Infrastructure
+@using RestaurantBookingSystem.Infrastructure.DataEntities
+@using RestaurantBookingSystem.Infrastructure.Repositories
+@model PaginatedList<RestaurantTable>
+@* ReSharper disable UnknownCssClass *@
+@{
+    ViewBag.Title = "Index";
+    var floorplan = new Dictionary<string, string>();
+    var tables = new RestaurantTableRepository().SelectAll().GroupBy(table => table.FloorPlanFileName);
+    if (tables.Count() > 0)
+    {
+        // ReSharper disable ReturnValueOfPureMethodIsNotUsed
+        tables.Select((group, index) =>
+        {
+            floorplan.Add(group.Key, "Floor Plan " + (index + 1));
+            return true;
+        }).ToList();
+        // ReSharper restore ReturnValueOfPureMethodIsNotUsed
+    }
+}
+@section head{
+    <script src="@Url.Content("~/Scripts/RestaurantBookingSystemScripts/RestaurantBookingSystemClientCore.js")"
+        type="text/javascript"></script>
+}
+<h2>Tables List:</h2>
+<hr />
+<div>
+    <table summary="Restaurant Tables">
+        <thead>
+            <tr>
+                <th scope="col">
+                    Id
+                </th>
+                <th scope="col">
+                    TableType
+                </th>
+                <th scope="col">
+                    Alignment
+                </th>
+                <th scope="col">
+                    Position
+                </th>
+                <th scope="col">
+                    Price
+                </th>
+                <th scope="col">
+                    Floor Plan
+                </th>
+                <th scope="col">
+                    Actions
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr class="@("item_row" + item.TableId)">
+                    <td>@item.TableId
+                    </td>
+                    <td>@item.TableType
+                    </td>
+                    <td>@item.Alignment
+                    </td>
+                    <td>@item.Position
+                    </td>
+                    <td>
+                        Rs. <span id="@("item_price_span" + item.TableId)">@item.Price</span><input class="ui-helper-hidden" id="@("item_price_input" + item.TableId)" type="number" value="@item.Price"/>
+                        /-
+                    </td>
+                    <td>@(floorplan[item.FloorPlanFileName])
+                    </td>
+                    <td class="table-td-action">
+                        <a class="edit_row" 
+                             onclick="editPrice('@Url.Action("Edit")', '@item.TableId')">Edit</a> <a class="delete_row"  onclick="deleteRow('@Url.Action("Delete")', '@item.TableId', '@((int)item.TableType)', '@item.Price')">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="pagination-box">
+        <strong>Showing Page @(Model.PageNumber)
+            of @(Model.TotalPages > 0 ? Model.TotalPages : 1):</strong> <span class="pagination-box-button-set">
+                @if (Model.HasPreviousPage)
+                {
+                    @Html.ActionLink("Previous", "Index", new { page = Model.PageNumber - 1 }, new { @class = "paginated-list-prev" })
+                }
+                @if (Model.HasNextPage)
+                {
+                    @Html.ActionLink("Next", "Index", new { page = Model.PageNumber + 1 }, new { @class = "paginated-list-next" })
+                }
+            </span>
+    </div>
+</div>
+<div id="dialog-confirm" class="ui-helper-hidden" title="Delete Table?">
+    <p>
+        <span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>
+        Table with seating Capacity <span id="dialog-confirm-item-type"></span> Worth Rs.
+        <span id="dialog-confirm-item-name"></span>/- will be permanently deleted.</p>
+    <p style="margin: 0 0px 0px 22px;">
+        Are you sure?</p>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('.edit_row').button({
+            icons: {
+                primary: "ui-icon-pencil"
+            },
+            text: false
+        });
+        $('.delete_row').button({
+            icons: {
+                primary: "ui-icon-closethick"
+            },
+            text: false
+        });
+        $('.paginated-list-prev').button({
+            label: 'Previous',
+            icons: {
+                primary: "ui-icon-seek-prev"
+            }
+        });
+        $('.paginated-list-next').button({
+            icons: {
+                secondary: "ui-icon-seek-next"
+            },
+            label: 'Next'
+        });
+    });
+    function editPrice(editUrl, tableId) {
+        $('#item_price_span' + tableId).hide();
+        //$('#item_price_input' + tableId).css('width', $('#item_price_span' + tableId).css('width'));
+        $('.item_row' + tableId + ' .edit_row').button({
+            icons: {
+                primary: "ui-icon-circle-check"
+            },
+            text: false
+        });
+        $('#item_price_input' + tableId).keypress(function (e) {
+            if (e.keyCode == 13) {
+                var newval = parseInt($(this).val());
+                if ($.isNaN(newval) || newval == 0)
+                    showViewNotification(false, 'Invalid Value given for price, please correct it.');
+                else {
+                    $(this).val(newval);
+                    $(this).disableSelection();
+                    $.post(editUrl, { 'id': tableId, 'price': newval }, function (responsejson, status) {
+                        if (status == 'success') {
+                            if (responsejson.Result) {
+                                $('#item_price_span' + tableId).text(newval).show();
+                                $('.item_row' + tableId + ' .edit_row').button({
+                                    icons: {
+                                        primary: "ui-icon-pencil"
+                                    },
+                                    text: false
+                                });
+                                $('#item_price_input' + tableId).enableSelection(); 
+                                $('#item_price_input' + tableId).hide();
+                            }
+                            showViewNotification(responsejson.Result, responsejson.Message);
+                        }
+                        else {
+                            showViewNotification(false, 'There was some network related error, please try again');
+                        }
+                    }, 'json');
+                }
+            }
+        });
+        $('#item_price_input' + tableId).show();
+    };
+</script>
+@* ReSharper restore UnknownCssClass *@

@@ -1,0 +1,331 @@
+﻿@using RestaurantBookingSystem.Helpers
+@using RestaurantBookingSystem.Infrastructure.Repositories
+@using RestaurantBookingSystem.Models
+@model BookingViewModel
+@* ReSharper disable UnknownCssClass *@
+@* ReSharper disable PossibleMultipleEnumeration*@
+@{
+    ViewBag.Title = "New Booking";
+    var starttime = new DateTime(1, 1, 1, 7, 0, 0, 0); //7 AM
+    var inittime = DateTime.MinValue;
+    //var modeltime = (int)Math.Floor((new DateTime(1, 1, 1, modeldatetime.Hour, modeldatetime.Minute, 0, 0, 0) - inittime).TotalMilliseconds);
+    var endtime = new DateTime(1, 1, 2, 0, 0, 0, 0); // late night 12 AM
+    var breakfast = new DateTime(1, 1, 1, 7, 0, 0, 0); // 7: AM
+    var lunch = new DateTime(1, 1, 1, 13, 0, 0, 0); // 1:00 PM
+    var dinner = new DateTime(1, 1, 1, 20, 0, 0, 0); // 8:00 PM
+    var timelist = new Dictionary<string, int>();
+    for (; starttime < endtime; starttime = starttime.AddMinutes(AppConfigHelper.BookingSlotMinutes))
+    {
+        if (starttime >= breakfast && starttime < breakfast.AddMinutes(AppConfigHelper.BookingSlotMinutes))
+        {
+            timelist.Add(starttime.ToString("h:mm tt") + " - Breakfast", (int)Math.Floor((starttime - inittime).TotalMilliseconds));
+            continue;
+        }
+        if (starttime >= lunch && starttime < lunch.AddMinutes(AppConfigHelper.BookingSlotMinutes))
+        {
+            timelist.Add(starttime.ToString("h:mm tt") + " - Lunch", (int)Math.Floor((starttime - inittime).TotalMilliseconds));
+            continue;
+        }
+        if (starttime >= dinner && starttime < dinner.AddMinutes(AppConfigHelper.BookingSlotMinutes))
+        {
+            timelist.Add(starttime.ToString("h:mm tt") + " - Dinner", (int)Math.Floor((starttime - inittime).TotalMilliseconds));
+            continue;
+        }
+        timelist.Add(starttime.ToString("h:mm tt"), (int)Math.Floor((starttime - inittime).TotalMilliseconds));
+    }
+    var selecttimelist = timelist.Select(kvp => new SelectListItem { Text = kvp.Key, Value = kvp.Value.ToString() });
+
+    var restaurantmenuitems = new RestaurantMenuItemRepository().SelectAll();
+}
+<div id="new_booking_warpper">
+    <div class="ui-corner-all new-booking-warpper-step" id="new_booking_warpper_step1">
+        <h2 style="text-align: center">Select your Date and Time for Booking</h2>
+        <div class="h-seperator"></div>
+        <div class="ui-helper-clearfix ui-date-time-warpper">
+        <div id="booking_datepicker_wrapper" class="ui-widget-content ui-corner-all"><div id="booking_datepicker" style="margin:10px"></div></div>
+        <ul id="booking_timepicker" class="ui-widget-content ui-corner-all">
+        @foreach (var timeitem in selecttimelist)
+        {
+            <li id="picked_time@(timeitem.Value)" data-val="@timeitem.Value" class="booking-timepicker-li ui-state-default ui-corner-all" onclick="pickTime(@timeitem.Value)" onmouseover="hoverOnTime(@timeitem.Value)" onmouseout="hoverOffTime(@timeitem.Value)">@timeitem.Text</li>
+        }        
+        </ul>
+        <h3 style="text-align: center; margin-top:10px">I want to make booking for</h3>
+        <div id="select_booking_slots">
+            <input type="radio" id="bookingslot1" name="booking_slot" value="1" checked="checked"/>
+            <label for="bookingslot1">@(AppConfigHelper.BookingSlotMinutes * 1) Minutes</label>
+            <input type="radio" id="bookingslot2" name="booking_slot" value="2"/>
+            <label for="bookingslot2">@(AppConfigHelper.BookingSlotMinutes * 2) Minutes</label>
+            <input type="radio" id="bookingslot3" name="booking_slot" value="3"/>
+            <label for="bookingslot3">@(AppConfigHelper.BookingSlotMinutes * 3) Minutes</label>
+            <input type="radio" id="bookingslot4" name="booking_slot" value="4"/>
+            <label for="bookingslot4">@(AppConfigHelper.BookingSlotMinutes * 4) Minutes</label>
+            <input type="radio" id="bookingslot5" name="booking_slot" value="5"/>
+            <label for="bookingslot5">@(AppConfigHelper.BookingSlotMinutes * 5) Minutes</label>
+            <input type="radio" id="bookingslot6" name="booking_slot" value="6"/>
+            <label for="bookingslot6">@(AppConfigHelper.BookingSlotMinutes * 6) Minutes</label>
+        </div>
+        </div>
+    </div>
+    <div class="ui-helper-hidden ui-corner-all new-booking-warpper-step" id="new_booking_warpper_step2">
+    <h2 style="text-align: center">Select one or more tables of your choice</h2>
+        <div class="h-seperator"></div>
+            <h3 style="text-align: center">Availability of tables as on</h3>
+            <p class="ui-widget-header ui-helper-clearfix ui-corner-all" style="text-align: center;margin:5px; padding:5px;">
+            <button id="booking_slot_prev_button">Prev @(AppConfigHelper.BookingSlotMinutes) Minutes</button>
+            <span id="table_availablitity_as_on">@(DateTime.Now.TryMakingLocalToClient().Floor((long)AppConfigHelper.BookingSlotMinutes, DateTimeHelper.DateTimePrecisionLevel.Minutes).ToString("dddd, dd MMM, h:mm tt"))</span>
+            <button id="booking_slot_next_button">Next @(AppConfigHelper.BookingSlotMinutes) Minutes</button></p>
+        <div id="div_table_status" class="ui-corner-all" style="margin:5px;">
+        @Html.Partial("tablestatus", new RestaurantTableRepository().SelectAll(DateTime.UtcNow.Floor((long)AppConfigHelper.BookingSlotMinutes, DateTimeHelper.DateTimePrecisionLevel.Minutes), DateTime.UtcNow.Floor((long)AppConfigHelper.BookingSlotMinutes, DateTimeHelper.DateTimePrecisionLevel.Minutes).AddMinutes(AppConfigHelper.BookingSlotMinutes)).First().Value)
+        </div>
+    </div>
+    <div class="ui-helper-hidden ui-corner-all new-booking-warpper-step ui-helper-clearfix" id="new_booking_warpper_step3">
+        <h2 style="text-align: center">Select one or more menu items (optional)</h2>
+        <div class="h-seperator"></div>
+        <div id="r-menu-items-warpper">
+        @foreach (var menuitem in restaurantmenuitems.Take(3))
+        {
+            <div class="r-menu-item-container ui-corner-all ui-widget-content " title="@menuitem.Description" onclick="pickRestaurantMenuItem(@menuitem.ItemId)">
+            <div class="ui-corner-all r-menu-item-picture" 
+                 style="background: transparent url(@Url.Action("GetImage", "Images", new {id = menuitem.PictureFile})) center center no-repeat;"></div>
+            <div class="ui-helper-clearfix menu-item-nameprice-wrapper ui-corner-all">
+            <div class="menu-item-nameprice">
+            <span style="display:block;margin:5px 3px;">@menuitem.Name</span>
+            <span style="display:block;">@menuitem.Price</span>
+            </div>
+            <div id="r_menu_item_cb@(menuitem.ItemId)" class="item_checkbox r-menu-unchecked" style="float:right; margin:5px 0 0 0;">
+            <input class=" ui-helper-hidden-accessible" type="checkbox" id="preffered_menu_items@(menuitem.ItemId)" name="preffered_menu_items@(menuitem.ItemId)" value="@menuitem.ItemId"/>
+            </div>
+            </div>
+            </div>
+        }
+        </div>
+    </div>
+    <div class="new-booking-button-box ui-helper-clearfix">
+        <button id="booking_step_back">Back</button>
+        <button id="booking_step_next">Next</button>
+    </div>        
+</div>
+@using (Html.BeginForm("New", "Bookings", new {OfferId = Request["offerid"]} , FormMethod.Post, new {id = "main_booking_form", @class = "ui-helper-hidden-accessible ui-helper-hidden"}))
+{
+    @Html.Hidden("BookedFor", new DateTime(Math.Max(DateTime.UtcNow.TryMakingLocalToClient().Date.AddMilliseconds(Convert.ToDouble(selecttimelist.First().Value)).Ticks, DateTime.UtcNow.TryMakingLocalToClient().Ticks)).Floor((long)AppConfigHelper.BookingSlotMinutes, DateTimeHelper.DateTimePrecisionLevel.Minutes).ToISODateTimeString())
+    @Html.Hidden("BookedSlots",  1 )
+    @Html.Hidden("BookedTables", "")
+    @Html.Hidden("PrefferedMenuItems", "")
+}                                                                       
+@section head                                                           
+{                                                                       
+    <script src="@Url.Content("~/Scripts/RestaurantBookingSystemScripts/BookingHelper.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/RestaurantBookingSystemScripts/RestaurantBookingSystemClientCore.js")" type="text/javascript"></script>
+    <script type="text/javascript">
+        var bookingstep = 0;
+        var pickedTimeValue = 0;
+        var BookingSlotMinutes = @(AppConfigHelper.BookingSlotMinutes);
+        var BookingSlotMilliSeconds = 1000 * 60 * BookingSlotMinutes;
+        var currentTablesList = new RestaurantTableList();
+
+        var input_BookedFor;
+        var input_BookedSlots;
+        var input_BookedTables;
+        var input_PrefferedMenuItems;
+        
+        $(document).ready(function () {
+            //Set this to true to get function call for booking when a table is clicked
+            window.bookingIsEnabled = true;
+            bookingstep = 1;
+            $('#booking_step_back').button({
+                label: 'Back',
+                icons: {
+                    primary: "ui-icon-seek-prev"
+                }
+            }).hide(); //.addClass('ui-state-disabled').attr('disabled', 'disabled');
+            
+            $('#booking_step_next').button({
+                icons: {
+                    secondary: "ui-icon-seek-next"
+                },
+                label: 'Next'
+            });
+
+            $('#booking_slot_prev_button').button({
+                    icons: {
+                        primary: "ui-icon-seek-prev"
+                    }
+            }).click(function () {
+                refreshTableStatus(-(input_BookedSlots.val() * BookingSlotMilliSeconds));
+                refreshPickTime();
+            });
+        
+            $('#booking_slot_next_button').button({
+                icons: {
+                    secondary: "ui-icon-seek-next"
+                }
+            }).click(function () {
+                refreshTableStatus(input_BookedSlots.val() * BookingSlotMilliSeconds);
+                refreshPickTime();
+            });
+            
+            $('#booking_datepicker').datepicker({ minDate: '0D', maxDate: '+3M', changeMonth: true });
+            $('#select_booking_slots').buttonset();
+            $('#booking_step_back').click(function () {
+                if (bookingstep > 1) {
+                    $('#new_booking_warpper_step' + bookingstep).addClass('ui-helper-hidden');
+                    $('#new_booking_warpper_step' + --bookingstep).removeClass('ui-helper-hidden');
+                    $('#booking_step_next').show(); //.removeClass('ui-state-disabled').removeAttr('disabled');
+                }
+                if (bookingstep === 1)
+                    $('#booking_step_back').hide(); //.addClass('ui-state-disabled').attr('disabled', 'disabled');
+            });
+            
+            $('#booking_step_next').click(function () {
+                if(bookingstep === 1) {
+                    $('#booking_slot_next_button .ui-button-text').text('Next ' + (input_BookedSlots.val() * BookingSlotMinutes) + ' Minutes');
+                    $('#booking_slot_prev_button .ui-button-text').text('Prev ' + (input_BookedSlots.val() * BookingSlotMinutes) + ' Minutes');
+                    refreshTableStatus();
+                }
+
+                if(bookingstep === 2) {
+                    if(isNaN(parseInt(input_BookedTables.val().split(',')[0]))) {
+                        showViewNotification(false, 'Cannot proceed, please select atleast one table !');
+                        return;
+                    }
+                }
+
+                if(bookingstep === 3) 
+                    $('#main_booking_form').submit();
+                
+                if (bookingstep < 3) {
+                    $('#new_booking_warpper_step' + bookingstep).addClass('ui-helper-hidden');
+                    $('#new_booking_warpper_step' + ++bookingstep).removeClass('ui-helper-hidden');
+                    $('#booking_step_back').show(); //.removeClass('ui-state-disabled').removeAttr('disabled');
+                }
+                //if (bookingstep === 3)
+                //    $('#booking_step_next').hide(); //.addClass('ui-state-disabled').attr('disabled', 'disabled');
+            });
+            
+            $('.r-menu-item-container').hover(function() {
+                $(this).addClass('r-menu-item-container-hover');
+            }, function() {
+                $(this).removeClass('r-menu-item-container-hover');
+            });
+            
+            //Reinitialize Booking widgets according to data in Form Input values
+            (function () {
+                input_BookedFor = $('#BookedFor');
+                input_BookedSlots = $('#BookedSlots');
+                input_BookedTables = $('#BookedTables');
+                input_PrefferedMenuItems = $('#PrefferedMenuItems');
+                refreshPickTime();
+                $('#booking_datepicker').change(function() {
+                    input_BookedFor.val(new Date(new Date($(this).val()).setMilliseconds(pickedTimeValue)).toISOString());
+                    refreshPickTime();
+                });
+                $('input[type="radio"][name="booking_slot"]')[input_BookedSlots.val() -1].checked = true;
+                $('input[type="radio"][name="booking_slot"]').change(function() { input_BookedSlots.val($(this).val());});
+                $('#select_booking_slots').buttonset('refresh');
+                //focefully reset the table and menu inputs if page is refreshed
+                input_BookedTables.val('');
+                input_PrefferedMenuItems.val('');
+            })();
+        });
+    
+        //get date formatted to .Net "dddd, dd MMM, h:mm tt" format
+        function formatToLongDateTime(dateinstance) {
+            return $.datepicker.formatDate('DD, dd MM', dateinstance) + ', ' + (dateinstance.getHours() / 12 === 1.0 ? 12 : dateinstance.getHours() % 12) +':' + (dateinstance.getMinutes() < 10 ? '0'+dateinstance.getMinutes() : dateinstance.getMinutes()) + ' ' + (dateinstance.getHours() / 12 < 1 ? 'AM' : 'PM');
+        }
+    
+        //get time formatted to .Net "h:mm tt" format
+        function formatToShortTime(dateinstance) {
+            return (dateinstance.getHours() / 12 === 1.0 ? 12 : dateinstance.getHours() % 12) +':' + (dateinstance.getMinutes() < 10 ? '0'+dateinstance.getMinutes() : dateinstance.getMinutes()) + ' ' + (dateinstance.getHours() / 12 < 1 ? 'AM' : 'PM');
+        };
+
+        function pickTime(timevalue) {
+            $('.booking-timepicker-li').removeClass('ui-widget-header').addClass('ui-state-default');
+            pickedTimeValue = timevalue;
+            input_BookedFor.val(new Date(new Date($('#booking_datepicker').val()).setMilliseconds(pickedTimeValue)).toISOString());
+            return $('#picked_time' + timevalue).removeClass('ui-state-hover').removeClass('ui-state-default').addClass('ui-widget-header');
+        };
+
+        function refreshPickTime() {
+            var bookedfordate = new Date(input_BookedFor.val());
+            var pickTimeOffset = (1000 * 60 * 60 * bookedfordate.getHours()) + (1000 * 60 * (bookedfordate.getMinutes() - (bookedfordate.getMinutes() % BookingSlotMinutes)));
+            var newTimeOffset = (1000 * 60 * 60 * new Date().getHours()) + (1000 * 60 * (new Date().getMinutes() - (new Date().getMinutes() % BookingSlotMinutes)));
+            var alltimepickerli = $('.booking-timepicker-li');
+            //console.log(pickTimeOffset + ' p, n ' + newTimeOffset);
+            alltimepickerli.show();
+            if (new Date().toDateString() === bookedfordate.toDateString()) {
+                for (var i = 0; i < alltimepickerli.length; i++) {
+                    if (parseInt($(alltimepickerli[i]).attr('data-val')) < newTimeOffset)
+                        $(alltimepickerli[i]).hide();
+                }
+                if (pickTimeOffset < newTimeOffset) pickTimeOffset = newTimeOffset;
+            }
+            //Line below is commented as it was causing some wierd error when datepicker was called for its val() later on
+            //$('#booking_datepicker').val(bookedfordate);
+            pickTime(pickTimeOffset);//[0].scrollIntoView();
+        };
+
+        function hoverOnTime(timevalue) {
+            with ($('#picked_time' + timevalue)) {
+                if (!hasClass('ui-widget-header'))
+                    addClass('ui-state-hover');
+            }
+        };
+
+        function hoverOffTime(timevalue) {
+            $('#picked_time' + timevalue).removeClass('ui-state-hover');
+        };
+        
+        function refreshTableStatus(timeoffset) {
+            if (timeoffset !== undefined && typeof timeoffset === 'number') {
+                var newDate = new Date(new Date(input_BookedFor.val()).getTime() + timeoffset);
+                var tDate = new Date();
+                if(newDate.getHours() < 7 || (newDate.toDateString() === tDate.toDateString() && newDate.getTime() < new Date(tDate.getTime() - BookingSlotMilliSeconds).getTime())) return;
+                input_BookedFor.val(newDate.toISOString());
+            }
+            var fromdatetime = new Date(input_BookedFor.val());
+            var slots = parseInt(input_BookedSlots.val());
+            getTableStatusOn('@Url.Action("StatusOn", "Tables")', fromdatetime, slots, BookingSlotMinutes , function () {
+                //console.log(this.KeyValuePairs[0].Key);
+                currentTablesList = getMergedTableStatusOf(this, 0, parseInt(input_BookedSlots.val()));
+                $(currentTablesList.Items).each(function() {
+                @*//$(this.KeyValuePairs.firstOrDefault().Value.Items).each(function() {// *@
+                    setTableStatus(this);
+                    $('#table_availablitity_as_on').text(formatToLongDateTime(fromdatetime));
+                });
+            });
+            //clear any previous booking after refresh
+            input_BookedTables.val('');
+        };
+
+        function bookThisTable(tableid) {
+            if ($(this).attr('src') === window.TableStatusIMG.Booked || $(this).attr('src') === window.TableStatusIMG.Occupied) return;
+            if ($(this).attr('src') === window.TableStatusIMG.BeingBooked) {
+                $(this).attr('src', window.TableStatusIMG.Vacant);
+                var tablesSplit = input_BookedTables.val().split(',');
+                tablesSplit.splice(tablesSplit.indexOf('' + tableid + ''), 1);
+                input_BookedTables.val(tablesSplit.join(','));
+            }
+            else {
+                $(this).attr('src', window.TableStatusIMG.BeingBooked);
+                input_BookedTables.val((input_BookedTables.val() === '' ? tableid : input_BookedTables.val() + ',' + tableid));
+            }
+        };
+        
+        function pickRestaurantMenuItem(itemId) {
+            if($('#preffered_menu_items' + itemId).attr('checked') === false) {
+                $('#preffered_menu_items' + itemId).attr('checked', 'checked');
+                $('#r_menu_item_cb' + itemId).removeClass('r-menu-unchecked').addClass('r-menu-checked');
+                input_PrefferedMenuItems.val((input_PrefferedMenuItems.val() === '' ? itemId : input_PrefferedMenuItems.val() + ',' + itemId));
+            }
+            else {
+                $('#preffered_menu_items' + itemId).removeAttr('checked');
+                $('#r_menu_item_cb' + itemId).removeClass('r-menu-checked').addClass('r-menu-unchecked');
+                var menuitemssplit = input_PrefferedMenuItems.val().split(',');
+                menuitemssplit.splice(menuitemssplit.indexOf('' + itemId + ''), 1);
+                input_PrefferedMenuItems.val(menuitemssplit.join(','));
+            }
+        };
+    </script>
+}
+@* ReSharper restore PossibleMultipleEnumeration*@
+@* ReSharper restore UnknownCssClass *@

@@ -1,0 +1,68 @@
+﻿@model RestaurantBookingSystem.Models.UpdateEmployeeModel
+
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.JuiRadios = "UserRole";
+}
+
+<h2>Edit</h2>
+@section head
+{
+    <script src="@Url.Content("~/Scripts/jquery.validate.min.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/jquery.validate.unobtrusive.min.js")" type="text/javascript"></script>
+}
+<div class="h-seperator"></div>
+@using (Html.BeginForm()) {
+    @Html.ValidationSummary(true)
+    <fieldset>
+        <legend>Enter Employee Details</legend>
+
+        <div class="editor-label">
+            @Html.LabelFor(model => model.UserRole)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.UserRole)
+            @Html.ValidationMessageFor(model => model.UserRole)
+        </div>
+        <div class="editor-label">
+            @Html.LabelFor(model => model.EmployeeName)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.EmployeeName)
+            @Html.ValidationMessageFor(model => model.EmployeeName)
+        </div>
+
+        <div class="editor-label">
+            @Html.LabelFor(model => model.MobileNumber)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.MobileNumber)
+            @Html.ValidationMessageFor(model => model.MobileNumber)
+        </div>
+
+        <div class="editor-label">
+            @Html.LabelFor(model => model.Address)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.Address)
+            @Html.ValidationMessageFor(model => model.Address)
+        </div>
+
+@*        <div class="editor-label">
+            @Html.LabelFor(model => model.UserGuid)
+        </div>*@
+        <div class="editor-field">
+            @Html.EditorFor(model => model.UserGuid)
+            @Html.ValidationMessageFor(model => model.UserGuid)
+        </div>
+
+        <p>
+            <input type="submit" value="Save" />
+        </p>
+    </fieldset>
+}
+
+<div>
+    @Html.ActionLink("Back to List", "Index")
+</div>
+

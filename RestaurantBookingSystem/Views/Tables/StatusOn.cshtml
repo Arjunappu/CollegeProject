@@ -1,0 +1,83 @@
+﻿@using RestaurantBookingSystem.Infrastructure.DataEntities
+@using RestaurantBookingSystem.Helpers
+@model IDictionary<DateTime, IEnumerable<RestaurantTable>>
+           
+@section head{
+    <script src="@Url.Content("~/Scripts/RestaurantBookingSystemScripts/BookingHelper.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/RestaurantBookingSystemScripts/RestaurantBookingSystemClientCore.js")" type="text/javascript"></script>
+}
+@{
+    ViewBag.Title = ViewBag.Title ?? "Status as on";
+    if (Model.Count < 1)
+    {
+        return;
+    }
+    var modeldatetime = @Model.First().Key.TryMakingLocalToClient();
+    var starttime = new DateTime(1, 1, 1, 7, 0, 0, 0); //7 AM
+    var inittime = DateTime.MinValue ;
+    var modeltime = (int)Math.Floor((new DateTime(1, 1, 1, modeldatetime.Hour, modeldatetime.Minute, 0, 0, 0) - inittime).TotalMilliseconds);
+    var endtime = new DateTime(1, 1, 2, 0, 0, 0, 0); // late night 12 AM
+    var breakfast = new DateTime(1, 1, 1, 7, 0, 0, 0); // 7: AM
+    var lunch = new DateTime(1, 1, 1, 13, 0, 0, 0); // 1:00 PM
+    var dinner = new DateTime(1, 1, 1, 20, 0, 0, 0); // 8:00 PM
+    var timelist = new Dictionary<string, int>{{"--Select Time--", -1}};
+    for (; starttime < endtime; starttime = starttime.AddMinutes(AppConfigHelper.BookingSlotMinutes))
+    {
+        if (starttime >= breakfast && starttime < breakfast.AddMinutes(AppConfigHelper.BookingSlotMinutes))
+        {
+            timelist.Add(starttime.ToString("h:mm tt") + " - Breakfast", (int)Math.Floor((starttime - inittime).TotalMilliseconds));
+            continue;
+        }
+        if (starttime >= lunch && starttime < lunch.AddMinutes(AppConfigHelper.BookingSlotMinutes))
+        {
+            timelist.Add(starttime.ToString("h:mm tt") + " - Lunch", (int)Math.Floor((starttime - inittime).TotalMilliseconds));
+            continue;
+        }
+        if (starttime >= dinner && starttime < dinner.AddMinutes(AppConfigHelper.BookingSlotMinutes))
+        {
+            timelist.Add(starttime.ToString("h:mm tt") + " - Dinner", (int)Math.Floor((starttime - inittime).TotalMilliseconds));
+            continue;
+        }
+        timelist.Add(starttime.ToString("h:mm tt"), (int)Math.Floor((starttime - inittime).TotalMilliseconds));
+    }
+    var selecttimelist = timelist.Select(kvp => new SelectListItem {Text = kvp.Key, Value = kvp.Value.ToString(), Selected = kvp.Value == modeltime});
+}
+<h2>Status as on: <span id = "span_statusason">@Model.First().Key.ToString("dd MMM, h:mm tt")</span></h2>
+<div class="h-seperator"></div>
+<div style="margin:10px 0px;">
+    <span class="editor-label">
+    <span>Get Status for:</span>
+    </span>
+    <span class="editor-field">
+        <input style="min-width: 17em;" id="fromdate" name="fromdate" type="date" value="@Model.First().Key.ToString("dddd, dd MMM yyyy")" />
+        @Html.DropDownList("fromtime", selecttimelist)
+        <button id="go">Go</button>
+    </span>
+</div>
+<div id="div_table_status" class="ui-corner-all">
+@Html.Partial("tablestatus", Model.First().Value)
+</div>
+<script type="text/javascript">
+    var shortMonthString = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    $('button').button();
+    $('#go').click(function () {
+        var fromdate = new Date($('#fromdate').val());
+        var fromtime = parseInt($('#fromtime').val());
+        if (!isNaN(fromdate.getTime()) && fromtime > 1) {
+            var fromdatetime = new Date(fromdate.getTime() + fromtime);
+            var tablestatus = getTableStatusOn('@Url.Action("StatusOn", "Tables")', fromdatetime, 1, @(AppConfigHelper.BookingSlotMinutes) , function () {
+                console.log(this.KeyValuePairs[0].Key);
+                $(this.KeyValuePairs.firstOrDefault().Value.Items).each(function() {
+                    setTableStatus(this);
+                    $('#span_statusason').text(fromdatetime.getDate() + ' ' + shortMonthString[fromdatetime.getMonth()] + ', ' + fromdatetime.getHours() % 12 +':' + (fromdatetime.getMinutes() < 10 ? '0'+fromdatetime.getMinutes() : fromdatetime.getMinutes()) + ' ' + (fromdatetime.getHours() / 12 < 1 ? 'AM' : 'PM'));
+                });
+            });
+        }
+    });
+    $("#fromdate").datepicker({
+        minDate : '0D',
+        maxDate : '+3M',
+        dateFormat : "DD, d MM, yy",
+        changeMonth : true
+    });
+</script>

@@ -1,0 +1,144 @@
+﻿@using RestaurantBookingSystem.Helpers
+@using RestaurantBookingSystem.Infrastructure.DataEntities
+@using RestaurantBookingSystem.Models
+@{
+    var pathcontroller = ViewContext.RouteData.GetRequiredString("controller");
+    var pathaction = ViewContext.RouteData.GetRequiredString("action");
+    Func<string, bool> isSelected = (c) => !c.IsNullOrEmpty() && String.Equals(c.ToUpperInvariant(), Url.Action(pathaction, pathcontroller).ToUpperInvariant());
+    Func<string, string, List<NavigationMenuModel>, NavigationMenuModel> makeMenu =
+        (name, actionurl, innermenu) => new NavigationMenuModel
+                                        {
+                                            Name = name,
+                                            Link = actionurl,
+                                            InnerMenu = innermenu,
+                                            Selected = isSelected(actionurl) || (innermenu != null && innermenu.Any( inner => inner.Selected))
+                                        };
+    Func<UserBase.RestaurantUserRole, bool> useris = (role) => Request.IsAuthenticated && User.IsInRole(role.ToString());
+
+    var mainmenu = new List<NavigationMenuModel>();
+
+    mainmenu.Add(makeMenu("Home", Url.Action("Index", "Home"), null));
+
+    if (!useris(UserBase.RestaurantUserRole.Admin))
+    {
+        var bookingmenu = new List<NavigationMenuModel>();
+
+        bookingmenu.Add(makeMenu("New Booking", Url.Action("New", "Bookings"), null));
+        if (useris(UserBase.RestaurantUserRole.Employee))
+        {
+            bookingmenu.Add(makeMenu("Todays Bookings", Url.Action("Today", "Bookings"), null));
+        }
+        if (useris(UserBase.RestaurantUserRole.Employee) || useris(UserBase.RestaurantUserRole.Customer) || useris(UserBase.RestaurantUserRole.Guest))
+        {
+            bookingmenu.Add(makeMenu("All Bookings", Url.Action("Index", "Bookings"), null));
+            bookingmenu.Add(makeMenu("Find Booking", Url.Action("List", "Bookings"), null));
+        }
+        mainmenu.Add(Request.IsAuthenticated ? makeMenu("Booking", Url.Action("Index", "Bookings"), bookingmenu) : makeMenu("New Booking", Url.Action("New", "Bookings"), null));
+    }
+
+    if (useris(UserBase.RestaurantUserRole.Employee) || useris(UserBase.RestaurantUserRole.Admin))
+    {
+        var tablesmenu = new List<NavigationMenuModel>();
+        {
+            tablesmenu.Add(makeMenu("Current Status", Url.Action("CurrentStatus", "Tables"), null));
+            tablesmenu.Add(makeMenu("Status On", Url.Action("StatusOn", "Tables"), null));
+        }
+        if (useris(UserBase.RestaurantUserRole.Admin))
+        {
+            tablesmenu.Add(makeMenu("List All", Url.Action("Index", "Tables"), null));
+            tablesmenu.Add(makeMenu("Add New", Url.Action("Add", "Tables"), null));
+        }
+        mainmenu.Add(makeMenu("Tables", Url.Action("CurrentStatus", "Tables"), tablesmenu));
+    }
+
+    if (useris(UserBase.RestaurantUserRole.Employee) || useris(UserBase.RestaurantUserRole.Admin))
+    {
+        var menuitemsmenu = new List<NavigationMenuModel>();
+
+        if (useris(UserBase.RestaurantUserRole.Employee))
+        {
+            menuitemsmenu.Add(makeMenu("Todays Servings", Url.Action("Today", "Menu"), null));
+            menuitemsmenu.Add(makeMenu("Servings On", Url.Action("ServingsOn", "Menu"), null));
+        }
+        menuitemsmenu.Add(makeMenu("List All", Url.Action("Index", "Menu"), null));
+        menuitemsmenu.Add(makeMenu("Add Menu Item", Url.Action("Add", "Menu"), null));
+        mainmenu.Add(makeMenu("Menu", Url.Action("Index", "Menu"), menuitemsmenu));
+    }
+
+    //if (useris(UserBase.RestaurantUserRole.Employee))
+    //{
+    //    var customersmenu = new List<NavigationMenuModel>
+    //        {
+    //            makeMenu("Check In", Url.Action("CheckIn", "Customers"), null), 
+    //            makeMenu("List Customers", Url.Action("Index", "Customers"), null)
+    //        };
+
+    //    mainmenu.Add(makeMenu("Customers", Url.Action("Index", "Customers"), customersmenu));
+    //}
+
+    if (useris(UserBase.RestaurantUserRole.Employee) || useris(UserBase.RestaurantUserRole.Admin))
+    {
+        var offermenu = new List<NavigationMenuModel>();
+
+        offermenu.Add(makeMenu("List All", Url.Action("Index", "Offers"), null));
+        if (useris(UserBase.RestaurantUserRole.Admin))
+        {
+            offermenu.Add(makeMenu("Add Offer", Url.Action("Add", "Offers"), null));
+        }
+        mainmenu.Add(makeMenu("Offers", Url.Action("Index", "Offers"), offermenu));
+    }
+
+    if (useris(UserBase.RestaurantUserRole.Admin))
+    {
+        var employeemenu = new List<NavigationMenuModel>();
+
+        employeemenu.Add(makeMenu("List All", Url.Action("Index", "Employee"), null));
+        employeemenu.Add(makeMenu("Add Employee", Url.Action("Add", "Employee"), null)); ;
+        mainmenu.Add(makeMenu("Employees", Url.Action("Index", "Employee"), employeemenu));
+    }
+
+    if (Request.IsAuthenticated)
+    {
+        var accountmenu = new List<NavigationMenuModel>();
+        if (useris(UserBase.RestaurantUserRole.Guest))
+        {
+            accountmenu.Add(makeMenu("Forget Me", Url.Action("LogOut", "Account"), null));
+        }
+        else
+        {
+            accountmenu.Add(makeMenu("Sign Out", Url.Action("LogOut", "Account"), null));
+            accountmenu.Add(makeMenu("Profile", Url.Action("Index", "Account"), null));
+            accountmenu.Add(makeMenu("Change Password", Url.Action("ChangePassword", "Account"), null));
+        }
+
+        mainmenu.Add(makeMenu("Account", !useris(UserBase.RestaurantUserRole.Guest) ? Url.Action("Index", "Account") : null, accountmenu));
+    }
+
+    if (!useris(UserBase.RestaurantUserRole.Employee))
+    {
+        mainmenu.Add(makeMenu("About", Url.Action("About", "Home"), null));
+    }
+}
+<div class="menu-container">
+    <ul>
+        @*This foreach only goes 1 level deep, will think of some way to get recursion an go n level deep*@
+        @foreach (var item in mainmenu)
+        {
+            if (item.InnerMenu == null)
+            {
+            <li><a href="@item.Link" class="@(item.Selected ? "a-menu-selected" : string.Empty)">@item.Name</a></li>
+            }
+            else
+            {
+            <li><a href="@item.Link" class="@(item.Selected ? "a-menu-selected" : string.Empty)">@item.Name</a>
+                <ul class="ul-sub-menu @(useris(UserBase.RestaurantUserRole.Employee) && item.Link.Contains("Account") ? "ul-sub-menu-last" : "")">
+                    @foreach (var inneritem in item.InnerMenu)
+                    {
+                        <li><a href="@inneritem.Link" class="@(inneritem.Selected ? "a-sub-menu-selected" : string.Empty)">@inneritem.Name</a></li>
+                    }
+                </ul>
+            </li>
+            }
+        }
+    </ul>
+</div>
